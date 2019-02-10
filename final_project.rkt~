@@ -1,1405 +1,364 @@
-#reader(lib"read.ss""wxme")WXME0108 ## 
-#|
-   This file uses the GRacket editor format.
-   Open this file in DrRacket version 7.0 or later to read it.
+; This file is a simulation of a flirt detector. The user inputs a sentence
+; (from some conversation) and gets back the percentage of the intention
+; (flirtation, non flirting affection, self perception...).
 
-   Most likely, it was created by saving a program in DrRacket,
-   and it probably contains a program with non-text elements
-   (such as images or comment boxes).
+#lang racket
+(require racket/gui/base)
+(require web-server/servlet)
+; Provides serve/servlet and happens to provide response/full.
+(require web-server/servlet-env)
+(require net/sendurl)
+(require simple-http)
+(require json)
+(require rackunit)
 
-            http://racket-lang.org/
-|#
- 33 7 #"wxtext\0"
-3 1 6 #"wxtab\0"
-1 1 8 #"wximage\0"
-2 0 8 #"wxmedia\0"
-4 1 34 #"(lib \"syntax-browser.ss\" \"mrlib\")\0"
-1 0 36 #"(lib \"cache-image-snip.ss\" \"mrlib\")\0"
-1 0 68
-(
- #"((lib \"image-core.ss\" \"mrlib\") (lib \"image-core-wxme.rkt\" \"mr"
- #"lib\"))\0"
-) 1 0 16 #"drscheme:number\0"
-3 0 44 #"(lib \"number-snip.ss\" \"drscheme\" \"private\")\0"
-1 0 36 #"(lib \"comment-snip.ss\" \"framework\")\0"
-1 0 93
-(
- #"((lib \"collapsed-snipclass.ss\" \"framework\") (lib \"collapsed-sni"
- #"pclass-wxme.ss\" \"framework\"))\0"
-) 0 0 43 #"(lib \"collapsed-snipclass.ss\" \"framework\")\0"
-0 0 19 #"drscheme:sexp-snip\0"
-0 0 29 #"drscheme:bindings-snipclass%\0"
-1 0 101
-(
- #"((lib \"ellipsis-snip.rkt\" \"drracket\" \"private\") (lib \"ellipsi"
- #"s-snip-wxme.rkt\" \"drracket\" \"private\"))\0"
-) 2 0 88
-(
- #"((lib \"pict-snip.rkt\" \"drracket\" \"private\") (lib \"pict-snip.r"
- #"kt\" \"drracket\" \"private\"))\0"
-) 0 0 55
-#"((lib \"snip.rkt\" \"pict\") (lib \"snip-wxme.rkt\" \"pict\"))\0"
-1 0 34 #"(lib \"bullet-snip.rkt\" \"browser\")\0"
-0 0 25 #"(lib \"matrix.ss\" \"htdp\")\0"
-1 0 22 #"drscheme:lambda-snip%\0"
-1 0 29 #"drclickable-string-snipclass\0"
-0 0 26 #"drracket:spacer-snipclass\0"
-0 0 57
-#"(lib \"hrule-snip.rkt\" \"macro-debugger\" \"syntax-browser\")\0"
-1 0 26 #"drscheme:pict-value-snip%\0"
-0 0 45 #"(lib \"image-snipr.ss\" \"slideshow\" \"private\")\0"
-1 0 38 #"(lib \"pict-snipclass.ss\" \"slideshow\")\0"
-2 0 55 #"(lib \"vertical-separator-snip.ss\" \"stepper\" \"private\")\0"
-1 0 18 #"drscheme:xml-snip\0"
-1 0 31 #"(lib \"xml-snipclass.ss\" \"xml\")\0"
-1 0 21 #"drscheme:scheme-snip\0"
-2 0 34 #"(lib \"scheme-snipclass.ss\" \"xml\")\0"
-1 0 10 #"text-box%\0"
-1 0 32 #"(lib \"text-snipclass.ss\" \"xml\")\0"
-1 0 1 6 #"wxloc\0"
-          0 0 67 0 1 #"\0"
-0 75 1 #"\0"
-0 12 90 -1 90 -1 3 -1 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 255 255 255 1 -1 0 9
-#"Standard\0"
-0 75 8 #"PT Mono\0"
-0 12 90 -1 90 -1 3 -1 0 1 0 1 0 0 0 0 0 0 0 0 0 0 0 255 255 255 1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0 -1 -1 2 24
-#"framework:default-color\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 150 0 150 0 0 0 -1 -1 2 15
-#"text:ports out\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 150 0 150 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 93 -1 -1 -1 0 0 0 0 0 0 0 0 0 1.0 1.0 1.0 255 0 0 0 0 0 -1
--1 2 15 #"text:ports err\0"
-0 -1 1 #"\0"
-1 0 -1 -1 93 -1 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 255 0 0 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 175 0 0 0 -1 -1 2 17
-#"text:ports value\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 0 175 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1.0 0 92 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1.0 1.0 1.0 34 139 34 0 0 0 -1
--1 2 27 #"Matching Parenthesis Style\0"
-0 -1 1 #"\0"
-1.0 0 92 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1.0 1.0 1.0 34 139 34 0 0 0 -1
--1 2 1 #"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 38 38 128 0 0 0 -1 -1 2 37
-#"framework:syntax-color:scheme:symbol\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 38 38 128 0 0 0 -1 -1 2 38
-#"framework:syntax-color:scheme:keyword\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 38 38 128 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 194 116 31 0 0 0 -1 -1 2
-38 #"framework:syntax-color:scheme:comment\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 194 158 31 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 41 128 38 0 0 0 -1 -1 2 37
-#"framework:syntax-color:scheme:string\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 211 72 255 0 0 0 -1 -1 2
-35 #"framework:syntax-color:scheme:text\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 41 128 38 0 0 0 -1 -1 2 39
-#"framework:syntax-color:scheme:constant\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 211 72 255 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 132 60 36 0 0 0 -1 -1 2 49
-#"framework:syntax-color:scheme:hash-colon-keyword\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 132 60 36 0 0 0 -1 -1 2 42
-#"framework:syntax-color:scheme:parenthesis\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 0 150 255 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 255 0 0 0 0 0 -1 -1 2 36
-#"framework:syntax-color:scheme:error\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 255 0 0 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 -1 -1 2 36
-#"framework:syntax-color:scheme:other\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 -1 -1 2 16
-#"Misspelled Text\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 81 112 203 0 0 0 -1 -1 2
-38 #"drracket:check-syntax:lexically-bound\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 81 112 203 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 178 34 34 0 0 0 -1 -1 2 28
-#"drracket:check-syntax:set!d\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 178 34 34 0 0 0 -1 -1 2 37
-#"drracket:check-syntax:unused-require\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 255 0 0 0 0 0 -1 -1 2 36
-#"drracket:check-syntax:free-variable\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 255 0 0 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 68 0 203 0 0 0 -1 -1 2 31
-#"drracket:check-syntax:imported\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 68 0 203 0 0 0 -1 -1 2 47
-#"drracket:check-syntax:my-obligation-style-pref\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 178 34 34 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 116 0 0 0 0 -1 -1 2 50
-#"drracket:check-syntax:their-obligation-style-pref\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 116 0 0 0 0 -1 -1 2 48
-#"drracket:check-syntax:unk-obligation-style-pref\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 139 142 28 0 0 0 -1 -1 2
-49 #"drracket:check-syntax:both-obligation-style-pref\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 139 142 28 0 0 0 -1 -1 2
-26 #"plt:htdp:test-coverage-on\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 -1 -1 2 1
-#"\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 1 0 0 0 0 0 0 255 165 0 0 0 0 -1 -1 2 27
-#"plt:htdp:test-coverage-off\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 1 0 0 0 0 0 0 255 165 0 0 0 0 -1 -1 4 1
-#"\0"
-0 70 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
--1 -1 4 4 #"XML\0"
-0 70 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
--1 -1 2 37 #"plt:module-language:test-coverage-on\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 0 -1 -1 2 38
-#"plt:module-language:test-coverage-off\0"
-0 -1 1 #"\0"
-1 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 1 0 0 0 0 0 0 255 165 0 0 0 0 -1 -1 4 1
-#"\0"
-0 71 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
--1 -1 4 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 1 0 0 0 0 0 0 0 0 1.0 1.0 1.0 0 0 255 0 0 0 -1
--1 4 1 #"\0"
-0 71 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 1 0 0 0 0 0 0 0 0 1.0 1.0 1.0 0 0 255 0 0 0 -1
--1 4 1 #"\0"
-0 71 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0 0 0 1.0 1.0 1.0 0 100 0 0 0 0 -1
--1 0 1 #"\0"
-0 75 1 #"\0"
-0.0 10 90 -1 90 -1 3 -1 0 1 0 1 0 0 0.0 0.0 0.0 0.0 0.0 0.0 0 0 0 255
-255 255 1 -1 0 1 #"\0"
-0 75 12 #"Courier New\0"
-0.0 10 90 -1 90 -1 3 -1 0 1 0 1 0 0 0.0 0.0 0.0 0.0 0.0 0.0 0 0 0 255
-255 255 1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 0 0 0 0 0 0
--1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 150 0 150 0
-0 0 -1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 93 -1 -1 -1 0 1 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 255 0 0 0 0
-0 -1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 93 -1 -1 0 1 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 0 0 175 0 0
-0 -1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 194 158 31 0
-0 0 -1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 211 72 255 0
-0 0 -1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 0 150 255 0
-0 0 -1 -1 2 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 0.0 0.0 0.0 1.0 1.0 1.0 200 0 0 0 0
-0 -1 -1 4 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 -1 -1 -1 -1 -1 -1 0 0 0 0 0 0 1.0 1.0 1.0 1.0 1.0 1.0 0 0 0 0 0 0
--1 -1 4 1 #"\0"
-0 -1 1 #"\0"
-1.0 0 92 -1 -1 -1 -1 -1 0 0 0 0 0 1 0.0 0.0 0.0 0.0 0.0 0.0 0 0 0 255
-255 0 -1 -1           0 779 0 28 3 12 #"#lang racket"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 7 #"require"
-0 0 24 3 1 #" "
-0 0 14 3 18 #"web-server/servlet"
-0 0 24 3 3 #")  "
-0 0 17 3 26 #"; Provides dispatch-rules."
-0 0 24 29 1 #"\n"
-0 0 17 3 62
-#"; Provides serve/servlet and happens to provide response/full."
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 7 #"require"
-0 0 24 3 1 #" "
-0 0 14 3 22 #"web-server/servlet-env"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 7 #"require"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"net/sendurl"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 7 #"require"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"simple-http"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 7 #"require"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"json"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 7 #"require"
-0 0 24 3 1 #" "
-0 0 14 3 15 #"net/http-client"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"acc-code"
-0 0 24 3 1 #" "
-0 0 19 3 2 #"\"\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 9 #"CLIENT_ID"
-0 0 24 3 1 #" "
-0 0 19 3 74
-(
- #"\"953670783310-382k5nb2qdfguunfo3nbvv8a8joqkcm3.apps.googleuserconte"
- #"nt.com\""
-) 0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"url"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"string-append"
-0 0 24 3 1 #" "
-0 0 19 3 89
-(
- #"\"https://accounts.google.com/o/oauth2/auth?scope=https://www.google"
- #"apis.com/auth/cloud-pl"
-) 0 0 19 3 12 #"atform&respo"
-0 0 19 3 14 #"nse_type=code&"
-0 0 19 3 63
-#"access_type=offline&redirect_uri=http://localhost:8000/token/&c"
-0 0 19 3 10 #"lient_id=\""
-0 0 24 3 1 #" "
-0 0 14 3 9 #"CLIENT_ID"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 14 3 8 #"send-url"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"url"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 17 3 18 #"; String -> Struct"
-0 0 24 29 1 #"\n"
-0 0 17 3 47 #"; put the content string to get a full response"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"http-response"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"content"
-0 0 24 3 3 #")  "
-0 0 17 3 45 #"; The 'content' parameter should be a string."
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 13 #"response/full"
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"    "
-0 0 21 3 3 #"200"
-0 0 24 3 18 #"                  "
-0 0 17 3 21 #"; HTTP response code."
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"    "
-0 0 19 3 5 #"#\"OK\""
-0 0 24 3 16 #"                "
-0 0 17 3 24 #"; HTTP response message."
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 15 #"current-seconds"
-0 0 24 3 5 #")    "
-0 0 17 3 12 #"; Timestamp."
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"    "
-0 0 14 3 19 #"TEXT/HTML-MIME-TYPE"
-0 0 24 3 2 #"  "
-0 0 17 3 24 #"; MIME type for content."
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"    "
-0 0 21 3 1 #"'"
-0 0 24 3 20 #"()                  "
-0 0 17 3 26 #"; Additional HTTP headers."
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 4 #"list"
-0 0 24 3 16 #"                "
-0 0 17 3 44 #"; Content (in bytes) to send to the browser."
-0 0 24 29 1 #"\n"
-0 0 24 3 7 #"      ("
-0 0 14 3 19 #"string->bytes/utf-8"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"content"
-0 0 24 3 3 #")))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  )"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 17 3 26 #"; Request String -> String"
-0 0 24 29 1 #"\n"
-0 0 17 3 46 #"; get the specific argument within the request"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 2 #" ("
-0 0 14 3 17 #"get-param->string"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"req"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"param"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 2 #"if"
-0 0 24 3 2 #" ("
-0 0 14 3 3 #"eq?"
-0 0 24 3 1 #" "
-0 0 21 3 2 #"#f"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"bindings-assq"
-0 0 24 3 2 #" ("
-0 0 14 3 19 #"string->bytes/utf-8"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"param"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 32 #"                               ("
-0 0 14 3 20 #"request-bindings/raw"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"req"
-0 0 24 3 3 #")))"
-0 0 24 29 1 #"\n"
-0 0 24 3 8 #"        "
-0 0 19 3 2 #"\"\""
-0 0 24 29 1 #"\n"
-0 0 24 3 9 #"        ("
-0 0 14 3 19 #"bytes->string/utf-8"
-0 0 24 3 1 #" "
-0 0 24 29 1 #"\n"
-0 0 24 3 12 #"           ("
-0 0 14 3 18 #"binding:form-value"
-0 0 24 3 1 #" "
-0 0 24 29 1 #"\n"
-0 0 24 3 16 #"               ("
-0 0 14 3 13 #"bindings-assq"
-0 0 24 3 2 #" ("
-0 0 14 3 19 #"string->bytes/utf-8"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"param"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 31 #"                              ("
-0 0 14 3 20 #"request-bindings/raw"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"req"
-0 0 24 3 6 #"))))))"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 10 #"google-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 10 #"update-ssl"
-0 0 24 29 1 #"\n"
-0 0 24 3 7 #"      ("
-0 0 14 3 11 #"update-host"
-0 0 24 3 1 #" "
-0 0 14 3 14 #"json-requester"
-0 0 24 3 1 #" "
-0 0 19 3 20 #"\"www.googleapis.com\""
-0 0 24 3 2 #") "
-0 0 21 3 2 #"#t"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"response_test"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"code"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 4 #"post"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"   "
-0 0 14 3 10 #"google-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"   "
-0 0 19 3 18 #"\"/oauth2/v4/token\""
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"   "
-0 0 23 3 6 #"#:data"
-0 0 24 3 2 #" ("
-0 0 14 3 14 #"jsexpr->string"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 9 #"client_id"
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 19 3 74
-(
- #"\"953670783310-382k5nb2qdfguunfo3nbvv8a8joqkcm3.apps.googleuserconte"
- #"nt.com\""
-) 0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 13 #"client_secret"
-0 0 24 3 1 #" "
-0 0 19 3 26 #"\"VIyH0aSnQ3NcE46YsMZvXtqD\""
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 12 #"redirect_uri"
-0 0 24 3 1 #" "
-0 0 19 3 30 #"\"http://localhost:8000/token/\""
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 10 #"grant_type"
-0 0 24 3 1 #" "
-0 0 19 3 20 #"\"authorization_code\""
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 17 3 28 #";Change the 'code every hour"
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 4 #"code"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"code"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #" ))"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 2 #" ("
-0 0 14 3 9 #"get-score"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"pred"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"pay"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 4 #"cond"
-0 0 24 3 3 #" [("
-0 0 14 3 6 #"equal?"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 19 3 12 #"\"flirtation\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"         ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 1 #"("
-0 0 14 3 3 #"car"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 5 #"first"
-0 0 24 3 2 #" ("
-0 0 14 3 8 #"hash-ref"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"pred"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"pay"
-0 0 24 3 9 #"))))))))]"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"        [("
-0 0 14 3 6 #"equal?"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 19 3 21 #"\"sorrow_and_break_up\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"         ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 1 #"("
-0 0 14 3 3 #"car"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 8 #"hash-ref"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"pred"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"pay"
-0 0 24 3 9 #"))))))))]"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"        [("
-0 0 14 3 6 #"equal?"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 19 3 17 #"\"self_perception\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"         ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 1 #"("
-0 0 14 3 3 #"car"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 5 #"third"
-0 0 24 3 2 #" ("
-0 0 14 3 8 #"hash-ref"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"pred"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"pay"
-0 0 24 3 9 #"))))))))]"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"        [("
-0 0 14 3 6 #"equal?"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 19 3 24 #"\"non_flirting_affection\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"         ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 1 #"("
-0 0 14 3 3 #"car"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"fourth"
-0 0 24 3 2 #" ("
-0 0 14 3 8 #"hash-ref"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"pred"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"pay"
-0 0 24 3 9 #"))))))))]"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"        [("
-0 0 14 3 6 #"equal?"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 19 3 18 #"\"world_perception\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 10 #"         ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 1 #"("
-0 0 14 3 3 #"car"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 5 #"fifth"
-0 0 24 3 2 #" ("
-0 0 14 3 8 #"hash-ref"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"pred"
-0 0 24 3 1 #" "
-0 0 14 3 3 #"pay"
-0 0 24 3 9 #"))))))))]"
-0 0 24 29 1 #"\n"
-0 0 24 3 9 #"        )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  )"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"token-page"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"request"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"token"
-0 0 24 3 3 #")  "
-0 0 17 3 34 #"; Notice the additional parameter."
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 4 #"set!"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"acc-code"
-0 0 24 3 2 #" ("
-0 0 14 3 17 #"get-param->string"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"request"
-0 0 24 3 1 #" "
-0 0 19 3 6 #"\"code\""
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"auth-key"
-0 0 24 3 2 #" ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 1 #"("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 18 #"json-response-body"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"response_test"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"acc-code"
-0 0 24 3 6 #"))))))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"auth"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"string-append"
-0 0 24 3 1 #" "
-0 0 19 3 1 #"\""
-0 0 19 3 14 #"Authorization:"
-0 0 19 3 1 #" "
-0 0 19 3 8 #"Bearer \""
-0 0 24 3 1 #" "
-0 0 14 3 8 #"auth-key"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 12 #"content-type"
-0 0 24 3 1 #" "
-0 0 19 3 1 #"\""
-0 0 19 3 13 #"Content-Type:"
-0 0 19 3 18 #" application/json\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"auto-ml-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 14 #"update-headers"
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"   ("
-0 0 14 3 10 #"update-ssl"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 11 #"update-host"
-0 0 24 3 1 #" "
-0 0 14 3 14 #"json-requester"
-0 0 24 3 1 #" "
-0 0 19 3 23 #"\"automl.googleapis.com\""
-0 0 24 3 2 #") "
-0 0 21 3 2 #"#t"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"   ("
-0 0 14 3 4 #"list"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"auth"
-0 0 24 3 1 #" "
-0 0 14 3 12 #"content-type"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"   )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 7 #"display"
-0 0 24 3 1 #" "
-0 0 19 3 57
-#"\"Got authorization. Enter the sentence you want to test: "
-0 0 19 3 1 #"\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"input"
-0 0 24 3 2 #" ("
-0 0 14 3 9 #"read-line"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 9 #"data_send"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 14 #"jsexpr->string"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 7 #"payload"
-0 0 24 29 1 #"\n"
-0 0 24 3 27 #"                          ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 11 #"textSnippet"
-0 0 24 29 1 #"\n"
-0 0 24 3 35 #"                                  ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 7 #"content"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"input"
-0 0 24 29 1 #"\n"
-0 0 24 3 42 #"                                          "
-0 0 21 3 1 #"'"
-0 0 14 3 9 #"mime_type"
-0 0 24 3 1 #" "
-0 0 19 3 11 #"\"text/plain"
-0 0 19 3 1 #"\""
-0 0 24 29 1 #"\n"
-0 0 24 3 36 #"                                   )"
-0 0 24 29 1 #"\n"
-0 0 24 3 36 #"                                  ) "
-0 0 24 29 1 #"\n"
-0 0 24 3 35 #"                                  )"
-0 0 24 29 1 #"\n"
-0 0 24 3 19 #"                  )"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"predict"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 18 #"json-response-body"
-0 0 24 3 2 #" ("
-0 0 14 3 4 #"post"
-0 0 24 29 1 #"\n"
-0 0 24 3 25 #"                         "
-0 0 14 3 11 #"auto-ml-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 25 #"                         "
-0 0 19 3 92
-(
- #"\"/v1beta1/projects/flirtdetector/locations/us-central1/models/TCN46"
- #"44038441693810693:predict"
-) 0 0 19 3 1 #"\""
-0 0 24 29 1 #"\n"
-0 0 24 3 25 #"                         "
-0 0 23 3 6 #"#:data"
-0 0 24 3 1 #" "
-0 0 14 3 9 #"data_send"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 25 #"                        )"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 9 #"predict_2"
-0 0 24 3 2 #" ("
-0 0 14 3 9 #"get-score"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"predict"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 7 #"payload"
-0 0 24 3 1 #" "
-0 0 19 3 11 #"\"flirtation"
-0 0 19 3 1 #"\""
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 13 #"http-response"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"string-append"
-0 0 24 3 1 #" "
-0 0 19 3 1 #"\""
-0 0 19 3 5 #"There"
-0 0 19 3 1 #" "
-0 0 19 3 2 #"is"
-0 0 19 3 1 #" "
-0 0 19 3 2 #"a "
-0 0 19 3 1 #"\""
-0 0 24 29 1 #"\n"
-0 0 24 3 33 #"                                ("
-0 0 14 3 14 #"number->string"
-0 0 24 3 1 #" "
-0 0 14 3 9 #"predict_2"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 32 #"                                "
-0 0 19 3 1 #"\""
-0 0 19 3 1 #" "
-0 0 19 3 6 #"chance"
-0 0 19 3 1 #" "
-0 0 19 3 4 #"that"
-0 0 19 3 1 #" "
-0 0 19 3 4 #"this"
-0 0 19 3 1 #" "
-0 0 19 3 8 #"sentence"
-0 0 19 3 1 #" "
-0 0 19 3 2 #"is"
-0 0 19 3 7 #" flirty"
-0 0 19 3 1 #"\""
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 2 #"  "
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  )"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 17 3 38 #";; URL routing table (URL dispatcher)."
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 13 #"define-values"
-0 0 24 3 2 #" ("
-0 0 14 3 8 #"dispatch"
-0 0 24 3 1 #" "
-0 0 14 3 12 #"generate-url"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 14 #"dispatch-rules"
-0 0 24 3 4 #"    "
-0 0 24 29 1 #"\n"
-0 0 24 3 6 #"    [("
-0 0 19 3 6 #"\"token"
-0 0 19 3 1 #"\""
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"string-arg"
-0 0 24 3 3 #")) "
-0 0 14 3 10 #"token-page"
-0 0 24 3 1 #"]"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"   ))"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 2 #" ("
-0 0 14 3 15 #"request-handler"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"request"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 8 #"dispatch"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"request"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 17 3 20 #";; Start the server."
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 14 3 13 #"serve/servlet"
-0 0 24 29 1 #"\n"
-0 0 24 3 2 #"  "
-0 0 14 3 15 #"request-handler"
-0 0 24 29 1 #"\n"
-0 0 24 3 2 #"  "
-0 0 23 3 17 #"#:launch-browser?"
-0 0 24 3 1 #" "
-0 0 21 3 2 #"#f"
-0 0 24 29 1 #"\n"
-0 0 24 3 2 #"  "
-0 0 23 3 7 #"#:quit?"
-0 0 24 3 1 #" "
-0 0 21 3 2 #"#f"
-0 0 24 29 1 #"\n"
-0 0 24 3 2 #"  "
-0 0 23 3 11 #"#:listen-ip"
-0 0 24 3 1 #" "
-0 0 21 3 2 #"#f"
-0 0 24 29 1 #"\n"
-0 0 24 3 2 #"  "
-0 0 23 3 6 #"#:port"
-0 0 24 3 1 #" "
-0 0 21 3 4 #"8000"
-0 0 24 29 1 #"\n"
-0 0 24 3 2 #"  "
-0 0 23 3 16 #"#:servlet-regexp"
-0 0 24 3 1 #" "
-0 0 19 3 5 #"#rx\"\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 9        2041 21           0 0           0 339 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 10 #"google-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 10 #"update-ssl"
-0 0 24 29 1 #"\n"
-0 0 24 3 7 #"      ("
-0 0 14 3 11 #"update-host"
-0 0 24 3 1 #" "
-0 0 14 3 14 #"json-requester"
-0 0 24 3 1 #" "
-0 0 19 3 20 #"\"www.googleapis.com\""
-0 0 24 3 2 #") "
-0 0 21 3 2 #"#t"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"response"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 4 #"post"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"   "
-0 0 14 3 10 #"google-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"   "
-0 0 19 3 18 #"\"/oauth2/v4/token\""
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"   "
-0 0 23 3 6 #"#:data"
-0 0 24 3 2 #" ("
-0 0 14 3 14 #"jsexpr->string"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 9 #"client_id"
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 19 3 74
-(
- #"\"953670783310-382k5nb2qdfguunfo3nbvv8a8joqkcm3.apps.googleuserconte"
- #"nt.com\""
-) 0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 13 #"client_secret"
-0 0 24 3 1 #" "
-0 0 19 3 26 #"\"VIyH0aSnQ3NcE46YsMZvXtqD\""
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 12 #"redirect_uri"
-0 0 24 3 1 #" "
-0 0 19 3 30 #"\"http://localhost:8000/token/\""
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 10 #"grant_type"
-0 0 24 3 1 #" "
-0 0 19 3 20 #"\"authorization_code\""
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 17 3 28 #";Change the 'code every hour"
-0 0 24 29 1 #"\n"
-0 0 24 3 34 #"                                  "
-0 0 21 3 1 #"'"
-0 0 14 3 4 #"code"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"acc-code"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #" ))"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"auth-key"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 3 #"cdr"
-0 0 24 3 1 #"("
-0 0 14 3 6 #"second"
-0 0 24 3 2 #" ("
-0 0 14 3 10 #"hash->list"
-0 0 24 3 2 #" ("
-0 0 14 3 18 #"json-response-body"
-0 0 24 3 1 #" "
-0 0 14 3 8 #"response"
-0 0 24 3 5 #")))))"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"auth"
-0 0 24 3 2 #" ("
-0 0 14 3 13 #"string-append"
-0 0 24 3 1 #" "
-0 0 19 3 24 #"\"Authorization: Bearer \""
-0 0 24 3 1 #" "
-0 0 14 3 8 #"auth-key"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 12 #"content-type"
-0 0 24 3 1 #" "
-0 0 19 3 32 #"\"Content-Type: application/json\""
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 11 #"auto-ml-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 14 #"update-headers"
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"   ("
-0 0 14 3 10 #"update-ssl"
-0 0 24 29 1 #"\n"
-0 0 24 3 5 #"    ("
-0 0 14 3 11 #"update-host"
-0 0 24 3 1 #" "
-0 0 14 3 14 #"json-requester"
-0 0 24 3 1 #" "
-0 0 19 3 23 #"\"automl.googleapis.com\""
-0 0 24 3 2 #") "
-0 0 21 3 2 #"#t"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"   ("
-0 0 14 3 4 #"list"
-0 0 24 3 1 #" "
-0 0 14 3 4 #"auth"
-0 0 24 3 1 #" "
-0 0 14 3 12 #"content-type"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 4 #"   )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  )"
-0 0 24 29 1 #"\n"
-0 0 17 3 3 #";  "
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 17 3 8 #"; String"
-0 0 24 29 1 #"\n"
-0 0 17 3 65
-#"; The input that need to be classify to put it into the data_send"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"input"
-0 0 24 3 1 #" "
-0 0 19 3 110
-(
- #"\"Can you see that Im the one who understand you. Been here all alon"
- #"g so why cant you see, you belong with me.\""
-) 0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 17 3 8 #"; String"
-0 0 24 29 1 #"\n"
-0 0 17 3 66
-#"; String representation of the Json part for the http post section"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 9 #"data_send"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 14 #"jsexpr->string"
-0 0 24 3 2 #" ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 7 #"payload"
-0 0 24 29 1 #"\n"
-0 0 24 3 27 #"                          ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 11 #"textSnippet"
-0 0 24 29 1 #"\n"
-0 0 24 3 35 #"                                  ("
-0 0 14 3 6 #"hasheq"
-0 0 24 3 1 #" "
-0 0 21 3 1 #"'"
-0 0 14 3 7 #"content"
-0 0 24 3 1 #" "
-0 0 14 3 5 #"input"
-0 0 24 29 1 #"\n"
-0 0 24 3 42 #"                                          "
-0 0 21 3 1 #"'"
-0 0 14 3 9 #"mime_type"
-0 0 24 3 1 #" "
-0 0 19 3 12 #"\"text/plain\""
-0 0 24 29 1 #"\n"
-0 0 24 3 36 #"                                   )"
-0 0 24 29 1 #"\n"
-0 0 24 3 36 #"                                  ) "
-0 0 24 29 1 #"\n"
-0 0 24 3 35 #"                                  )"
-0 0 24 29 1 #"\n"
-0 0 24 3 19 #"                  )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  )"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 17 3 6 #"; Json"
-0 0 24 29 1 #"\n"
-0 0 17 3 155
-(
- #"; json response of the model after sending the input into the api ca"
- #"ll. At the end of the predict, all the prediction data for the sente"
- #"nce is in that Json"
-) 0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 15 3 6 #"define"
-0 0 24 3 1 #" "
-0 0 14 3 7 #"predict"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  ("
-0 0 14 3 18 #"json-response-body"
-0 0 24 3 2 #" ("
-0 0 14 3 4 #"post"
-0 0 24 29 1 #"\n"
-0 0 24 3 23 #"                       "
-0 0 14 3 11 #"auto-ml-api"
-0 0 24 29 1 #"\n"
-0 0 24 3 23 #"                       "
-0 0 19 3 93
-(
- #"\"/v1beta1/projects/flirtdetector/locations/us-central1/models/TCN46"
- #"44038441693810693:predict\""
-) 0 0 24 29 1 #"\n"
-0 0 24 3 23 #"                       "
-0 0 23 3 6 #"#:data"
-0 0 24 3 1 #" "
-0 0 14 3 9 #"data_send"
-0 0 24 3 1 #")"
-0 0 24 29 1 #"\n"
-0 0 24 3 23 #"                      )"
-0 0 24 29 1 #"\n"
-0 0 24 3 3 #"  )"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 14 3 7 #"predict"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 3 1 #"("
-0 0 14 3 7 #"payload"
-0 0 24 29 1 #"\n"
-0 0 24 3 11 #"  #hasheq(("
-0 0 14 3 14 #"classification"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 10 #" #hasheq(("
-0 0 14 3 5 #"score"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 21 3 10 #"0.76927525"
-0 0 24 3 5 #"))) ("
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 14 3 10 #"flirtation"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 11 #"  #hasheq(("
-0 0 14 3 14 #"classification"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 10 #" #hasheq(("
-0 0 14 3 5 #"score"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 21 3 10 #"0.15892592"
-0 0 24 3 5 #"))) ("
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 14 3 19 #"sorrow_and_break_up"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 11 #"  #hasheq(("
-0 0 14 3 14 #"classification"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 10 #" #hasheq(("
-0 0 14 3 5 #"score"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 21 3 10 #"0.07971727"
-0 0 24 3 5 #"))) ("
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 14 3 15 #"self_perception"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 11 #"  #hasheq(("
-0 0 14 3 14 #"classification"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 10 #" #hasheq(("
-0 0 14 3 5 #"score"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 21 3 9 #"0.3187586"
-0 0 24 3 5 #"))) ("
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 14 3 22 #"non_flirting_affection"
-0 0 24 3 2 #"))"
-0 0 24 29 1 #"\n"
-0 0 24 3 11 #"  #hasheq(("
-0 0 14 3 14 #"classification"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 10 #" #hasheq(("
-0 0 14 3 5 #"score"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 21 3 9 #"0.2962231"
-0 0 24 3 5 #"))) ("
-0 0 14 3 11 #"displayName"
-0 0 24 3 1 #" "
-0 0 28 3 1 #"."
-0 0 24 3 1 #" "
-0 0 14 3 16 #"world_perception"
-0 0 24 3 3 #")))"
-0           0 0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0 0 24 29 1 #"\n"
-0           0
+; ====================================================
+;                   API part
+; ====================================================
+; Variable for accessing code to the API.
+(define acc-code "")
+(define auth-key "")
+(define CLIENT-ID
+  "953670783310-382k5nb2qdfguunfo3nbvv8a8joqkcm3.apps.googleusercontent.com")
+(define URL (string-append "https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/cloud-platform&response_type=code&access_type=offline&redirect_uri=http://localhost:8000/token/&client_id=" CLIENT-ID))
+
+; http-response: String -> Struct
+; Given the content return a struct (given by response/full)
+; (struct response/full (code message seconds mime headers body)
+(define (http-response content)  ; The 'content' parameter should be a string.
+  (response/full
+    200                  ; HTTP response code.
+    #"OK"                ; HTTP response message.
+    (current-seconds)    ; Timestamp.
+    TEXT/HTML-MIME-TYPE  ; MIME type for content.
+    '()                  ; Additional HTTP headers.
+    (list                ; Content (in bytes) to send to the browser.
+      (string->bytes/utf-8 content)))
+  )
+; Test the http response
+(check-eq? (response-code (http-response "This is good")) 200)
+            
+
+; Initializer for the post request for google API.
+(define google-api
+  (update-ssl
+   (update-host json-requester "www.googleapis.com") #t))
+
+
+; get-score: HashEQ Option String -> Number.
+; Given a Hash map, an Option and a String return the percentage of the chosen category.
+(define (get-score pred pay displayName)
+  (cond [(string=? displayName  (cdr (first (hash->list (first (hash-ref pred pay))))))
+         (cdr (car (hash->list (cdr (second (hash->list (first (hash-ref pred pay))))))))]
+        [(string=? displayName (cdr (first (hash->list (second (hash-ref pred pay))))))
+         (cdr (car (hash->list (cdr (second (hash->list (second (hash-ref pred pay))))))))]
+        [(string=? displayName (cdr (first (hash->list (third (hash-ref pred pay))))))
+         (cdr (car (hash->list (cdr (second (hash->list (third (hash-ref pred pay))))))))]
+        [(string=? displayName (cdr (first (hash->list (fourth (hash-ref pred pay))))))
+         (cdr (car (hash->list (cdr (second (hash->list (fourth (hash-ref pred pay))))))))]
+        [(string=? displayName (cdr (first (hash->list (fifth (hash-ref pred pay))))))
+         (cdr (car (hash->list (cdr (second (hash->list (fifth (hash-ref pred pay))))))))]
+        ))
+; Test get-score
+(define test-predict
+  '#hasheq((payload
+          .
+          (#hasheq((classification . #hasheq((score . 0.63047427))) (displayName . "flirtation"))
+           #hasheq((classification . #hasheq((score . 0.10311453))) (displayName . "sorrow_and_break_up"))
+           #hasheq((classification . #hasheq((score . 0.13499533))) (displayName . "self_perception"))
+           #hasheq((classification . #hasheq((score . 0.2801268))) (displayName . "non_flirting_affection"))
+           #hasheq((classification . #hasheq((score . 0.29289556))) (displayName . "world_perception"))))))
+(check-eq? (get-score test-predict 'payload "flirtation") 0.63047427)
+(check-eq? (get-score test-predict 'payload "sorrow_and_break_up") 0.10311453)
+(check-eq? (get-score test-predict 'payload "self_perception") 0.13499533)
+
+
+
+; Initializing the beginning thread. This thread run in the background to make sure that the program is authorized
+(thread (lambda ()
+          (begin
+            ; Send initial URL to get the token
+            ; String -> Response as a Struct
+            ; Enter access code for the database to get 
+            (define (response-test code)
+              (post
+               google-api
+               "/oauth2/v4/token"
+               #:data (jsexpr->string (hasheq 'client_id
+                                              "953670783310-382k5nb2qdfguunfo3nbvv8a8joqkcm3.apps.googleusercontent.com"
+                                              'client_secret "VIyH0aSnQ3NcE46YsMZvXtqD"
+                                              'redirect_uri "http://localhost:8000/token/"
+                                              'grant_type "authorization_code"
+                                              ;Change the 'code every hour
+                                              'code code))
+               ))
+            
+            (send-url URL)
+            
+            ; get-param->string: Request String -> String.
+            ; get the specific argument within the request.
+            (define (get-param->string req param)
+              (if (eq? #f (bindings-assq (string->bytes/utf-8 param)
+                                         (request-bindings/raw req)))
+                  ""
+                  (bytes->string/utf-8 
+                   (binding:form-value 
+                    (bindings-assq (string->bytes/utf-8 param)
+                                   (request-bindings/raw req))))))
+
+            ; Process the token got from the url send 
+            (define-values (dispatch generate-url)
+              (dispatch-rules    
+               [("token" (string-arg)) token-page]))
+            (define (request-handler request)
+              (dispatch request))
+            
+            ; Token page: use the request and the token to get the authorization for the code. 
+            (define (token-page request token)  ; Notice the additional parameter.
+              (set! acc-code (get-param->string request "code")) ; Set the access code
+              (set! auth-key (cdr(second (hash->list (json-response-body (response-test acc-code)))))) ; send the access code to get the authorization key.
+              (http-response "Got Authorization, return to the program.");display to the browser
+              )
+            
+            ;; Start the server.
+            (serve/servlet
+             request-handler
+             #:launch-browser? #f
+             #:quit? #f
+             #:listen-ip #f
+             #:port 8000
+             #:servlet-regexp #rx""))))
+; ====================================================
+;                   Star diagram part
+; ====================================================
+
+; Define class custom-canvas%, inheriting from editor-class%
+(define custom-canvas%
+  (class editor-canvas%
+    ; Define 5 base points of the pentagon.
+    (define X1 300)
+    (define Y1  50)
+    (define X2 157)
+    (define Y2 154)
+    (define X3 212)
+    (define Y3 321)
+    (define X4 388)
+    (define Y4 321)
+    (define X5 443)
+    (define Y5 154)
+    
+    (super-new)
+    (inherit get-dc get-width get-height)
+    ; initialize 5 new fields of the canvas
+    (init-field flirtation)
+    (init-field sorrow)
+    (init-field self-perception)
+    (init-field world-perception)
+    (init-field non-flirt)
+    ;overiding on-paint method of object custom-canvas to draw the radar chart
+    (define/override (on-paint)
+      ; get the drawing context of the object
+      (define dc (get-dc))
+
+      ; Take the center of the canvas as the center of the radar chart
+      (define CENTER-X (/ (get-width) 2))
+      (define CENTER-Y (/ (get-height) 2))
+
+      ;erase old drawing to fill in with the new one
+      (send dc erase)
+      (send dc set-pen "orange" 2 'solid)
+
+      ; Draw the initial pentagon using the pre-define points
+      (send dc draw-line X1 Y1 X2 Y2)
+      (send dc draw-line X2 Y2 X3 Y3)
+      (send dc draw-line X3 Y3 X4 Y4)
+      (send dc draw-line X4 Y4 X5 Y5)
+      (send dc draw-line X5 Y5 X1 Y1)
+
+      ;Draw Flirtation part
+      (send dc set-pen "HotPink" 2 'solid)
+      (send dc draw-line CENTER-X CENTER-Y X1 Y1)
+      (send dc set-brush "HotPink" 'solid)
+      (send dc draw-text (string-append "Flirtation: " (number->string (round (* flirtation 100))) "%") 265 30)
+      (send dc draw-ellipse
+            (+ CENTER-X (* (- X1 CENTER-X) flirtation))
+            (+ CENTER-Y (* (- Y1 CENTER-Y) flirtation)) 4 4)
+
+      ;Draw sorrow and break up part
+      (send dc set-pen "LightSkyBlue" 2 'solid)
+      (send dc draw-line  CENTER-X CENTER-Y X3 Y3)
+      (send dc set-brush "LightSkyBlue" 'solid)
+      (send dc draw-text (string-append "Sorrow/breakup: " (number->string (round (* sorrow 100))) "%")  150 330)
+      (send dc draw-ellipse
+            (+ CENTER-X (* (- X3 CENTER-X) sorrow))
+            (+ CENTER-Y (* (- Y3 CENTER-Y) sorrow)) 4 4)
+
+      ;Draw non-flirting affection part
+      (send dc set-pen "Crimson" 2 'solid)
+      (send dc draw-line  CENTER-X CENTER-Y X2 Y2)
+      (send dc set-brush "Crimson" 'solid)
+      (send dc draw-text (string-append "Non flirting: " (number->string (round (* non-flirt 100))) "%")  15 145)
+      (send dc draw-ellipse
+            (+ CENTER-X (* (- X2 CENTER-X) non-flirt))
+            (+ CENTER-Y (* (- Y2 CENTER-Y) non-flirt)) 4 4)
+      
+      ;Draw world-perception part
+      (send dc set-pen "LimeGreen" 2 'solid)
+      (send dc draw-line  CENTER-X CENTER-Y X4 Y4)
+      (send dc set-brush "LimeGreen" 'solid)
+      (send dc draw-text (string-append "World perception: " (number->string (round (* world-perception 100))) "%")  340 330)
+      (send dc draw-ellipse
+            (+ CENTER-X (* (- X4 CENTER-X) world-perception))
+            (+ CENTER-Y (* (- Y4 CENTER-Y) world-perception)) 4 4)
+
+      ;Draw self-perception part
+      (send dc set-pen "DarkOrchid" 2 'solid)
+      (send dc draw-line  CENTER-X CENTER-Y X5 Y5)
+      (send dc set-brush "DarkOrchid" 'solid)
+      (send dc draw-text (string-append "Self perception " (number->string (round (* self-perception 100))) "%")  460 145)
+      (send dc draw-ellipse
+            (+ CENTER-X (* (- X5 CENTER-X) self-perception))
+            (+ CENTER-Y (* (- Y5 CENTER-Y) self-perception)) 4 4)
+      
+      ;Draw the complete polygon
+      (send dc set-pen "white" 1 'transparent)
+      (send dc set-brush "Red" 'hilite)
+      (send dc draw-polygon
+            (list (cons
+                   (+ CENTER-X (* (- X1 CENTER-X) flirtation))
+                   (+ CENTER-Y (* (- Y1 CENTER-Y) flirtation))
+                   )
+                  (cons
+                   (+ CENTER-X (* (- X2 CENTER-X) non-flirt))
+                   (+ CENTER-Y (* (- Y2 CENTER-Y) non-flirt))
+                   )
+                  (cons
+                   (+ CENTER-X (* (- X3 CENTER-X) sorrow))
+                   (+ CENTER-Y (* (- Y3 CENTER-Y) sorrow))
+                   )
+                  (cons
+                   (+ CENTER-X (* (- X4 CENTER-X) world-perception))
+                   (+ CENTER-Y (* (- Y4 CENTER-Y) world-perception))
+                   )
+                  (cons
+                   (+ CENTER-X (* (- X5 CENTER-X) self-perception))
+                   (+ CENTER-Y (* (- Y5 CENTER-Y) self-perception))
+                   )
+            )
+      )
+    )))
+
+; ====================================================
+;                   GUI window part
+; ====================================================
+; Make a frame by instantiating the frame% class
+(define frame (new frame% [label "Flirt detector"]
+                   [width 600]
+                   [height 400]
+                   [alignment '(right top)]))
+ 
+; Add a text field to the dialog
+(define text-input (new text-field%
+                        [parent frame]
+                        [label "Enter your text here:"]
+                        [min-width 150]
+                        [min-height 150]
+                        [vert-margin 30]
+                        [horiz-margin 10]
+                        [stretchable-width #t]
+                        [stretchable-height #f]
+                        [style (list 'single 'multiple 'hscroll)]))
+
+; Make a static text message in the frame.
+(define msg (new message%
+                 [parent frame]
+                 [label "The result of the prediction:"]
+                 [vert-margin 2]
+                 [horiz-margin 10]))
+
+; Add a horizontal panel to the dialog, with centering for buttons.
+; Here should appear the diagram
+(define panel (new horizontal-panel%
+                   [parent frame]
+                   [vert-margin 10]
+                   [horiz-margin 10]
+                   [alignment '(left bottom)]
+                   [stretchable-width #t]
+                   [stretchable-height #f]))
+
+; A window inside the same frame which shows the result of the
+; prediction.
+(define output (new custom-canvas%
+                    [flirtation 0]
+                    [sorrow 0]
+                    [self-perception 0]
+                    [world-perception 0]
+                    [non-flirt 0]
+                    [parent panel]
+                    [label "output"]
+                    [min-width 600]
+                    [min-height 400]
+                    [vert-margin 10]
+                    [horiz-margin 10]
+                    [style '(no-hscroll auto-vscroll)]
+                    [stretchable-width #t]
+                    [stretchable-height #t]))
+
+; Button to start the prediction of the text.
+(define predict-button (new button%
+                            [parent frame]
+                            [label "Predict"]
+                            [vert-margin 10]
+                            [horiz-margin 20]
+                            [callback (lambda (b e) (on-click-predict-button b e))]
+                            ))
+
+; ====================================================
+;                   Event Handlers
+; ====================================================
+; Void function
+; Procedure:
+; When 
+; On-click handle. 
+(define (on-click-predict-button button event)
+  (define input (send text-input get-value))
+  (cond [(eq? input "") (display "No input given, please enter the conversation you want to analyze.")]
+        [else (begin
+                (define auth (string-append "Authorization: Bearer " auth-key))
+                (define content-type "Content-Type: application/json")
+                (define auto-ml-api
+                  (update-headers
+                   (update-ssl
+                    (update-host json-requester "automl.googleapis.com") #t)
+                   (list auth content-type)
+                   )
+                  )
+                (define data-send
+                  (jsexpr->string (hasheq 'payload
+                                          (hasheq 'textSnippet
+                                                  (hasheq 'content input
+                                                          'mime_type "text/plain")))))
+                (define predict
+                  (json-response-body (post
+                                       auto-ml-api "/v1beta1/projects/flirtdetector/locations/us-central1/models/TCN2255869835756317386:predict"
+                                       #:data data-send)))
+                
+                (define flirt-score (get-score predict 'payload "flirtation"))
+                (dynamic-set-field! 'flirtation output flirt-score)
+  
+                (define sorrow-score (get-score predict 'payload "sorrow_and_break_up"))
+                (dynamic-set-field! 'sorrow output sorrow-score)
+  
+                (define self-score (get-score predict 'payload "self_perception"))
+                (dynamic-set-field! 'self-perception output self-score)
+
+                (define world-score (get-score predict 'payload "world_perception"))
+                (dynamic-set-field! 'world-perception output world-score)
+
+                (define non-score  (get-score predict 'payload "non_flirting_affection"))
+                (dynamic-set-field! 'non-flirt output non-score)
+                (send output on-paint))]))
+; Since this is a 
+
+; Show the dialog
+(send frame show #t)
