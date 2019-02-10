@@ -1,0 +1,136 @@
+#lang racket
+(require web-server/servlet)  ; Provides dispatch-rules.
+; Provides serve/servlet and happens to provide response/full.
+(require web-server/servlet-env)
+(require net/sendurl)
+(require simple-http)
+(require json)
+(require net/http-client)
+
+
+
+
+
+(define acc-code "")
+
+
+(define CLIENT_ID "953670783310-382k5nb2qdfguunfo3nbvv8a8joqkcm3.apps.googleusercontent.com")
+
+(define url (string-append "https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/cloud-platform&response_type=code&access_type=offline&redirect_uri=http://localhost:8000/token/&client_id=" CLIENT_ID))
+(send-url url)
+
+; String -> Struct
+; put the content string to get a full response
+(define (http-response content)  ; The 'content' parameter should be a string.
+  (response/full
+    200                  ; HTTP response code.
+    #"OK"                ; HTTP response message.
+    (current-seconds)    ; Timestamp.
+    TEXT/HTML-MIME-TYPE  ; MIME type for content.
+    '()                  ; Additional HTTP headers.
+    (list                ; Content (in bytes) to send to the browser.
+      (string->bytes/utf-8 content)))
+  )
+
+; Request String -> String
+; get the specific argument within the request
+(define (get-param->string req param)
+    (if (eq? #f (bindings-assq (string->bytes/utf-8 param)
+                               (request-bindings/raw req)))
+        ""
+        (bytes->string/utf-8 
+           (binding:form-value 
+               (bindings-assq (string->bytes/utf-8 param)
+                              (request-bindings/raw req))))))
+
+
+
+(define (token-page request token)  ; Notice the additional parameter.
+  (set! acc-code (get-param->string request "code"))
+  (http-response (string-append
+                  "App got token. Return to app.")))
+
+;; URL routing table (URL dispatcher).
+(define-values (dispatch generate-url)
+  (dispatch-rules    
+    [("token" (string-arg)) token-page] 
+    [else (error "There is no procedure to handle the url.")]))
+
+(define (request-handler request)
+  (dispatch request))
+
+;; Start the server.
+(serve/servlet
+  request-handler
+  #:launch-browser? #f
+  #:quit? #f
+  #:listen-ip #f
+  #:port 8000
+  #:servlet-regexp #rx"")
+
+
+
+; Setup a json-request using SSL and pointed at httpbin.org
+(define google-api
+    (update-ssl
+      (update-host json-requester "www.googleapis.com") #t))
+
+(define response
+  (post
+   google-api
+   "/oauth2/v4/token"
+   #:data (jsexpr->string (hasheq 'client_id
+                                  "953670783310-382k5nb2qdfguunfo3nbvv8a8joqkcm3.apps.googleusercontent.com"
+                                  'client_secret "VIyH0aSnQ3NcE46YsMZvXtqD"
+                                  'redirect_uri "http://localhost:8000/token/"
+                                  'grant_type "authorization_code"
+                                  ;Change the 'code every hour
+                                  'code acc-code))
+ ))
+
+(define auth-key
+  (cdr(second (hash->list (json-response-body response)))))
+(define auth (string-append "Authorization: Bearer " auth-key))
+(define content-type "Content-Type: application/json")
+
+(define auto-ml-api
+  (update-headers
+   (update-ssl
+    (update-host json-requester "automl.googleapis.com") #t)
+   (list auth content-type)
+   )
+  )
+;  
+;
+;(define input "Can you see that Im the one who understand you. Been here all along so why cant you see, you belong with me.")
+(define data  (string-append "{
+        \"payload\" : {
+          \"textSnippet\": {
+               \"content\": \"I would walk 500 miles, and I would walk 500 more\",
+                \"mime_type\": \"text/plain\"
+           },
+        }
+      }"))
+(define predict
+  (post
+   auto-ml-api
+   "/v1beta1/projects/flirtdetector/locations/us-central1/models/TCN4561511213507032534:predict"
+   #:data data))
+
+;(http-conn-send!
+;   hc "automl.googleapis.com/v1beta1/projects/flirtdetector/locations/us-central1/models/TCN4561511213507032534:predict"
+;   #:method "POST"
+;   #:data
+;   (string->jsexpr "{
+;        \"payload\" : {
+;          \"textSnippet\": {
+;               \"content\": \"Is racket suck?\",
+;                \"mime_type\": \"text/plain\"
+;           },
+;        }
+;      }")
+;   #:headers (list "Content-Type: application/json" (string-append "Authorization: Bearer " auth-key)))
+
+
+
+
